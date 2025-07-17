@@ -19,7 +19,7 @@ variable (U : Set E)
 
 variable (F : (E →L[ℝ] ℝ) × ℝ × E → ℝ)
 
--- we are interested in the following ODE
+-- we are interested in the following PDE
 #check ∀ x ∈ U, F (fderiv ℝ u x, u x, x) = 0
 
 variable [FiniteDimensional ℝ E]

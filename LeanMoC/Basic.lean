@@ -15,17 +15,34 @@ variable
 
 -- for now let's try with `gradient`, might switch later
 
-variable (U : Set (E xℝ))
+variable (U : Set ((E xℝ)))
 
 variable (F : (E xℝ) × ℝ × (E xℝ) → ℝ)
 
 -- we are interested in the following ODE
 #check ∀ x ∈ U, F (gradient u x, u x, x) = 0
 
+
+-- adjust to be a vector
+noncomputable abbrev DpF (X : E xℝ × ℝ × E xℝ) : (E xℝ) →L[ℝ] ℝ :=
+  fderiv ℝ F X ∘L ContinuousLinearMap.inl ℝ _ _
+
+-- adjust to be a real number
+noncomputable abbrev DzF (X : E xℝ × ℝ × E xℝ) : ℝ :=
+  (fderiv ℝ F X ∘L ContinuousLinearMap.inr ℝ _ _ ∘L ContinuousLinearMap.inl ℝ _ _) 1
+
+-- adjust to be a vector
+noncomputable abbrev DxF (X : E xℝ × ℝ × E xℝ) : (E xℝ) →L[ℝ] ℝ :=
+  fderiv ℝ F X ∘L ContinuousLinearMap.inr ℝ _ _ ∘L ContinuousLinearMap.inr ℝ _ _
+
 -- let's write down the characteristic equations
 
 variable (p : ℝ → E xℝ) (z : ℝ → ℝ)
   (x : ℝ → E xℝ) -- hopefully the output of the `x` function lives in `U`
 
-variable (x₀ : E xℝ)
-#check (gradient F x₀).1 -- D_pF in Evans
+/-- Property that the functions `p`, `z`, `x` satisfy the characteristic equations of `F` on the
+interval `I`. -/
+structure CharEqnSolution (I : Set ℝ) : Prop where
+  eq_p : ∀ s ∈ I, deriv p s = - (InnerProductSpace.toDual ℝ _).symm (DxF F (p s, z s, x s)) - DzF F (p s, z s, x s) • p s
+  eq_z : ∀ s ∈ I, deriv z s = DpF F (p s, z s, x s) (p s)
+  eq_x : ∀ s ∈ I, deriv x s = (InnerProductSpace.toDual ℝ _).symm (DpF F (p s, z s, x s))

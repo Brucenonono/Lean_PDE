@@ -131,16 +131,18 @@ theorem CharEqnStructure
   have Dzxs : deriv z = p s ∘ (deriv x) := sorry
   sorry
 
+-- H to be the hyperplane
+variable {H : Type} [NormedAddCommGroup H] [NormedSpace ℝ H]
+variable (e : E ≃L[ℝ] H × ℝ)
+variable {F : E × ℝ × E → ℝ} {g : H → ℝ}
 
-variable (g : E → ℝ)
+structure IsAdmissibleInitialData (p₀ x₀ z₀)where
+  z₀_eq_g : z₀ = g (e x₀).1
 
-/-- compatibility condition-/
-structure CompatSol (p0 : E)(z0 : ℝ)(x0 : E)where
-  CondZ : z0 = g x0
-  CondF : F
+  x₀_on_boundary : (e x₀).2 = 0
 
+  p₀_tangential_eq_grad_g : (e p₀).1 = fderiv ℝ g (e x₀).1 -- for i = 1,..,n-1
 
-/-- noncharaceteristic boundary data-/
+  boundary_pde : F (p₀, z₀, x₀) = 0
 
-theorem NoncharBounCond
-(hFpn : ) : (∃! q : E → E, ∃ 𝓝 x0, ∀ y ∈ 𝓝, ) := by
+end

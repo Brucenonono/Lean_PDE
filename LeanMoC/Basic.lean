@@ -10,12 +10,15 @@ noncomputable def NormedSpace.evalEquiv [FiniteDimensional ℝ E] : E ≃ₗ[ℝ
   let c : ((E →L[ℝ] ℝ) →ₗ[ℝ] ℝ) ≃ₗ[ℝ] ((E →L[ℝ] ℝ) →L[ℝ] ℝ) := LinearMap.toContinuousLinearMap
   a.trans (b.trans c)
 
+
 variable
   (u : E → ℝ)
 
 #check fderiv ℝ u -- more commonly used in mathlib, more lemmas
 
 variable (U : Set E)
+
+variable (I : Set ℝ)
 
 variable (F : (E →L[ℝ] ℝ) × ℝ × E → ℝ)
 
@@ -36,19 +39,19 @@ noncomputable abbrev DzF (X : (E →L[ℝ] ℝ) × ℝ × E) : ℝ :=
 noncomputable abbrev DxF (X : (E →L[ℝ] ℝ) × ℝ × E) : E →L[ℝ] ℝ :=
   fderiv ℝ F X ∘L ContinuousLinearMap.inr ℝ _ _ ∘L ContinuousLinearMap.inr ℝ _ _
 
--- let's write down the characteristic equations
+
 
 variable (p : ℝ → (E →L[ℝ] ℝ)) (z : ℝ → ℝ)
-  (x : ℝ → E) -- hopefully the output of the `x` function lives in `U`
+  (x : ℝ → E) (s : ℝ)-- hopefully the output of the `x` function lives in `U`
 
-/-- Property that the functions `p`, `z`, `x` satisfy the characteristic equations of `F` on the
-interval `I`. -/
-structure CharEqnSolution (I : Set ℝ) : Prop where
-  eq_p : ∀ s ∈ I, deriv p s = - DxF F (p s, z s, x s) - DzF F (p s, z s, x s) • p s
-  eq_z : ∀ s ∈ I, deriv z s = p s (DpF F (p s, z s, x s))
-  eq_x : ∀ s ∈ I, deriv x s = DpF F (p s, z s, x s)
+noncomputable def φ (x : E) : (E →L[ℝ] ℝ) × ℝ × E := (fderiv ℝ u x, u x, x)
+noncomputable def G := F ∘ (φ u)
 
-variable (s : ℝ)
+variable (hz : z = u ∘ x) (hp : ∀ s ∈ I, p s = fderiv ℝ u (x s))
+variable (hDx : DifferentiableAt ℝ x s) (hDz : DifferentiableAt ℝ u (x s))
+variable (hu : ContDiffOn ℝ 2 u U) (h_pde : ∀ y ∈ U, G y = 0)
+-- variable (hF : F is C1 continuous on U)
+
 #check DpF F (p s, z s, x s)
 #check deriv p s
 #check deriv x s
@@ -57,41 +60,30 @@ variable (s : ℝ)
 #check p s
 variable (I : Set ℝ)
 
--- chain rule for z
-example (hz : DifferentiableAt ℝ u (x s))  (hu : DifferentiableAt ℝ x s):
-  fderiv ℝ (u ∘ x) s = (fderiv ℝ u (x s)).comp (fderiv ℝ x s):= by
-  exact fderiv_comp s hz hu
-
--- eq_z proof via simple substitution
-example (hf : ∀ s ∈ I, fderiv ℝ (u ∘ x) s = (fderiv ℝ u (x s)).comp (fderiv ℝ x s))
-  (h1 : z = u ∘ x) (hp : ∀ s ∈ I, p s = fderiv ℝ u (x s)) :
-  ∀ s ∈ I, fderiv ℝ z s = (p s).comp (fderiv ℝ x s):= by
-  intro s hs
-  rw[h1]
-  rw[hf s hs]
-  rw[hp s hs]
-
-noncomputable def φ (x : E) : (E →L[ℝ] ℝ) × ℝ × E := (fderiv ℝ u x, u x, x)
-noncomputable def f := F ∘ (φ u)
 -- Dxf = DpF Dxp + DzF Dxu + DxF = 0 ??
-#check φ u (x s)
-example (F_fφ : f = F ∘ φ )
-    (hF : DifferentiableAt ℝ F (φ u (x s)))
-    (hp : DifferentiableAt ℝ p s)
-    (hz : DifferentiableAt ℝ z s)
-    (hf : DifferentiableAt ℝ x s)
-    (hφ : DifferentiableAt ℝ φ (x s)):
-  fderiv ℝ f (x s) = fderiv ℝ F (fderiv ℝ u (x s), u (x s), x s) ∘
-  ((fderiv ℝ (fderiv ℝ u) (x s)).prod ((fderiv ℝ u (x s)).prod (ContinuousLinearMap.id ℝ E))) :=
+example :
+  (fderiv ℝ (fun t => F (t, u (x s), x s)) (fderiv ℝ u (x s))) ∘ (fderiv ℝ (fderiv ℝ u) (x s)) +
+    (fderiv ℝ (fun t => F (fderiv ℝ u (x s), t, (x s))) (u (x s))) ∘ (fderiv ℝ u (x s)) +
+    (fderiv ℝ (fun t => F (fderiv ℝ u (x s), u (x s), t)) (x s)) = 0:=
   by
-  have φ' : fderiv ℝ (φ) (x s) =
-  (fderiv ℝ (fderiv ℝ u) (x s)).prod ((fderiv ℝ u (x s)).prod (ContinuousLinearMap.id ℝ E)) :=
-  by
+
+  have hG' : fderiv ℝ (G u F) (x s) = 0 := by
     sorry
-  rw[← φ']
-  -- f = F∘φ
-  rw[F_fφ]
-  exact fderiv_comp (x s) hF hφ
+
+  have hφ' : fderiv ℝ (φ u) (x s) =
+    (fderiv ℝ (fderiv ℝ u) (x s)).prod ((fderiv ℝ u (x s)).prod (ContinuousLinearMap.id ℝ E)) := by
+    sorry
+
+  have hφ_diff : DifferentiableAt ℝ (φ u) (x s) := by
+    sorry
+
+  have hF_diff : DifferentiableAt ℝ F (φ u (x s)) := by
+    sorry
+
+  change fderiv ℝ (F ∘ φ u) (x s) = 0 at hG'
+  rw [fderiv_comp (x s) (hF_diff) (hφ_diff)] at hG'
+  rw [hφ'] at hG'
+
   sorry
 
 -- chain rule for p, Dsp = DDxu Dsx
@@ -104,10 +96,28 @@ example (hp : ∀ s ∈ I, p s = fderiv ℝ u (x s)) (hs : s ∈ I) (hu : ContDi
   sorry
   sorry -- show C2 continuous
 
+-- eq_p proof via substitution
+example : fderiv ℝ p s = - (fderiv ℝ (fun t => F (fderiv ℝ u (x s), t, (x s))) (u (x s))) ∘ (fderiv ℝ u (x s)) -
+    (fderiv ℝ (fun t => F (fderiv ℝ u (x s), u (x s), t)) (x s)) := by
+  sorry
+
+
+-- eq_z proof via substitution
+example (heq_x : ∀ s, s ∈ I → deriv x s = DpF F (p s, z s, x s)) :
+  ∀ s ∈ I, fderiv ℝ z s = (p s).comp (fderiv ℝ x s):= by
+  intro s hs
+  have chain_Dp : fderiv ℝ (u ∘ x) s = (fderiv ℝ u (x s)).comp (fderiv ℝ x s):= by
+    exact fderiv_comp s hDz hDx
+  rw[hz]
+  rw[hp s hs] at chain_Dp
 
 /-- suppose DDxu = Dxp, Dsx = DpF, DxF = 0,
-substitute to get Dsp = Dxp DpF = -DzF Dxu -DxF --/
-
+substitute to get Dsp = Dxp DpF = -DzF Dxu -DxF
+to show: D₁F(φ(x))∘t₁∘Dφ(x) = DDu(x(s))∘Dx(s) = Dₛp(s)
+t₁∘Dφ(x) = DDu(x(s))
+D₁F(φ(x) = Dx(s) by assumption
+but can we reverse composition?
+--/
 
 theorem CharEqnStructure
   (hz : ∀ s ∈ I, z s = u (x s)) (hp : ∀ s ∈ I, p s = fderiv ℝ u (x s))
@@ -120,3 +130,17 @@ theorem CharEqnStructure
   sorry
   have Dzxs : deriv z = p s ∘ (deriv x) := sorry
   sorry
+
+
+variable (g : E → ℝ)
+
+/-- compatibility condition-/
+structure CompatSol (p0 : E)(z0 : ℝ)(x0 : E)where
+  CondZ : z0 = g x0
+  CondF : F
+
+
+/-- noncharaceteristic boundary data-/
+
+theorem NoncharBounCond
+(hFpn : ) : (∃! q : E → E, ∃ 𝓝 x0, ∀ y ∈ 𝓝, ) := by

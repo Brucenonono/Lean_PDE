@@ -146,5 +146,3 @@ structure IsAdmissibleInitialData (p₀ x₀ z₀)where
   boundary_pde : F (p₀, z₀, x₀) = 0
 
 end
-
-#ok
